@@ -1,0 +1,3 @@
+# Require @Thilrash to review all changes.
+# Pattern '*' means all files in the repository.
+*    @Thilrash
