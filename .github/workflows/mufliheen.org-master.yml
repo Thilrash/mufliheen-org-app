@@ -6,7 +6,7 @@ on:
 
 jobs:
   test:
-    name: Run tests for PR
+    name: Build and deploy master
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -28,6 +28,7 @@ jobs:
           restore-keys: ${{ runner.os }}-composer-
 
       - name: Install composer dependencies
+        id: composer-install
         run: composer install --prefer-dist --no-progress --no-suggest --no-interaction
 
       - name: Copy example env
@@ -39,33 +40,26 @@ jobs:
           fi
 
       - name: Generate APP_KEY
+        id: generate-key
         run: php artisan key:generate --ansi
 
       - name: Documentation Build (create build-report.md)
-        # Use the outcomes of earlier steps to report statuses
+        # Create a build report documenting the deployment to master
         run: |
           REPORT=build-report.md
-          echo "# Laravel PR Build Report" > $REPORT
+          echo "# Laravel Master Build Report" > $REPORT
           echo "" >> $REPORT
           echo "Repository: $GITHUB_REPOSITORY" >> $REPORT
-          echo "Pull Request Number: ${{ github.event.pull_request.number }}" >> $REPORT
-          echo "PR Title: ${{ github.event.pull_request.title }}" >> $REPORT
-          echo "Head Branch: ${{ github.head_ref }}" >> $REPORT
-          echo "Base Branch: ${{ github.event.pull_request.base.ref }}" >> $REPORT
           echo "Commit: ${{ github.sha }}" >> $REPORT
           echo "PHP Version: ${{ env.PHP_VERSION }}" >> $REPORT
           echo "Composer Install Status: ${{ steps.composer-install.outcome }}" >> $REPORT
           echo "Key Generation Status: ${{ steps.generate-key.outcome }}" >> $REPORT
-          echo "Tests Status: ${{ steps.run-tests.outcome }}" >> $REPORT
           echo "Runner: $RUNNER_OS" >> $REPORT
           echo "Workflow: $GITHUB_WORKFLOW" >> $REPORT
           echo "Event: $GITHUB_EVENT_NAME" >> $REPORT
           echo "" >> $REPORT
-          echo "Build Status: $([ "${{ steps.run-tests.outcome }}" = "success" ] && echo "✅ Successful" || echo "❌ Failed")" >> $REPORT
+          echo "Build Status: $([ "${{ steps.composer-install.outcome }}" = "success" ] && [ "${{ steps.generate-key.outcome }}" = "success" ] && echo "✅ Successful" || echo "❌ Failed")" >> $REPORT
           echo "Date: $(date --utc '+%Y-%m-%d %H:%M:%S UTC')" >> $REPORT
-          echo "" >> $REPORT
-          echo "Notes:" >> $REPORT
-          echo "- If tests failed, open the Actions run and inspect the logs for failing tests." >> $REPORT
           cat $REPORT
         shell: bash
 
@@ -76,17 +70,16 @@ jobs:
           server_port: ${{ secrets.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: "Laravel PR Build Report — PR #${{ github.event.pull_request.number }} — ${{ github.repository }}"
+          subject: "Laravel Master Build Report — ${{ github.repository }}"
           to: ${{ secrets.NOTIFY_EMAIL }}
           from: "Mufliheen.org Developer CI <noreply@mufliheen.org>"
           content_type: text/plain
           attachments: build-report.md
           body: |
             Repository: ${{ github.repository }}
-            Pull Request: #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}
-            Branch: ${{ github.head_ref }}
             Commit: ${{ github.sha }}
-            Tests status: ${{ steps.run-tests.outcome }}
+            Composer Install Status: ${{ steps.composer-install.outcome }}
+            Key Generation Status: ${{ steps.generate-key.outcome }}
 
             The build report is attached.
 
