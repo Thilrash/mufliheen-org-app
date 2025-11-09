@@ -28,6 +28,7 @@ jobs:
           restore-keys: ${{ runner.os }}-composer-
 
       - name: Install composer dependencies
+        id: composer-install
         run: composer install --prefer-dist --no-progress --no-suggest --no-interaction
 
       - name: Copy example env
@@ -39,7 +40,12 @@ jobs:
           fi
 
       - name: Generate APP_KEY
+        id: generate-key
         run: php artisan key:generate --ansi
+
+      - name: Run tests
+        id: run-tests
+        run: php artisan test
 
       - name: Documentation Build (create build-report.md)
         # Use the outcomes of earlier steps to report statuses
