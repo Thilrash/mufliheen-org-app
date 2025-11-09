@@ -76,7 +76,7 @@ jobs:
           password: ${{ secrets.SMTP_PASSWORD }}
           subject: "Laravel PR Build Report — PR #${{ github.event.pull_request.number }} — ${{ github.repository }}"
           to: ${{ secrets.NOTIFY_EMAIL }}
-          from: "Mufliheen.org Developer CI"
+          from: "Mufliheen.org Developer CI <noreply@mufliheen.org>"
           content_type: text/plain
           attachments: build-report.md
           body: |
