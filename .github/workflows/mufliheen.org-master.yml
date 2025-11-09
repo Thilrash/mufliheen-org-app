@@ -45,13 +45,11 @@ jobs:
         # Use the outcomes of earlier steps to report statuses
         run: |
           REPORT=build-report.md
-          echo "# Laravel PR Build Report" > $REPORT
+          echo "# Laravel Build Report" > $REPORT
           echo "" >> $REPORT
           echo "Repository: $GITHUB_REPOSITORY" >> $REPORT
-          echo "Pull Request Number: ${{ github.event.pull_request.number }}" >> $REPORT
-          echo "PR Title: ${{ github.event.pull_request.title }}" >> $REPORT
-          echo "Head Branch: ${{ github.head_ref }}" >> $REPORT
-          echo "Base Branch: ${{ github.event.pull_request.base.ref }}" >> $REPORT
+          echo "Commit Message: ${{ github.event.head_commit.message }}" >> $REPORT
+          echo "Branch: ${{ github.ref_name }}" >> $REPORT
           echo "Commit: ${{ github.sha }}" >> $REPORT
           echo "PHP Version: ${{ env.PHP_VERSION }}" >> $REPORT
           echo "Composer Install Status: ${{ steps.composer-install.outcome }}" >> $REPORT
@@ -76,16 +74,16 @@ jobs:
           server_port: ${{ secrets.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: "Laravel PR Build Report — PR #${{ github.event.pull_request.number }} — ${{ github.repository }}"
+          subject: "Laravel Build Report — ${{ github.ref_name }} — ${{ github.repository }}"
           to: ${{ secrets.NOTIFY_EMAIL }}
           from: "Mufliheen.org Developer CI <noreply@mufliheen.org>"
           content_type: text/plain
           attachments: build-report.md
           body: |
             Repository: ${{ github.repository }}
-            Pull Request: #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}
-            Branch: ${{ github.head_ref }}
+            Branch: ${{ github.ref_name }}
             Commit: ${{ github.sha }}
+            Commit Message: ${{ github.event.head_commit.message }}
             Tests status: ${{ steps.run-tests.outcome }}
 
             The build report is attached.
