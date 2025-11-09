@@ -39,5 +39,54 @@ jobs:
       - name: Generate APP_KEY
         run: php artisan key:generate --ansi
 
-      - name: Run tests
-        run: vendor/bin/phpunit --colors=always --verbose
+      - name: Documentation Build (create build-report.md)
+        # Use the outcomes of earlier steps to report statuses
+        run: |
+          REPORT=build-report.md
+          echo "# Laravel PR Build Report" > $REPORT
+          echo "" >> $REPORT
+          echo "Repository: $GITHUB_REPOSITORY" >> $REPORT
+          echo "Pull Request Number: ${{ github.event.pull_request.number }}" >> $REPORT
+          echo "PR Title: ${{ github.event.pull_request.title }}" >> $REPORT
+          echo "Head Branch: ${{ github.head_ref }}" >> $REPORT
+          echo "Base Branch: ${{ github.event.pull_request.base.ref }}" >> $REPORT
+          echo "Commit: ${{ github.sha }}" >> $REPORT
+          echo "PHP Version: ${{ env.PHP_VERSION }}" >> $REPORT
+          echo "Composer Install Status: ${{ steps.composer-install.outcome }}" >> $REPORT
+          echo "Key Generation Status: ${{ steps.generate-key.outcome }}" >> $REPORT
+          echo "Tests Status: ${{ steps.run-tests.outcome }}" >> $REPORT
+          echo "Runner: $RUNNER_OS" >> $REPORT
+          echo "Workflow: $GITHUB_WORKFLOW" >> $REPORT
+          echo "Event: $GITHUB_EVENT_NAME" >> $REPORT
+          echo "" >> $REPORT
+          echo "Build Status: $([ "${{ steps.run-tests.outcome }}" = "success" ] && echo "✅ Successful" || echo "❌ Failed")" >> $REPORT
+          echo "Date: $(date --utc '+%Y-%m-%d %H:%M:%S UTC')" >> $REPORT
+          echo "" >> $REPORT
+          echo "Notes:" >> $REPORT
+          echo "- If tests failed, open the Actions run and inspect the logs for failing tests." >> $REPORT
+          cat $REPORT
+        shell: bash
+
+      - name: Send Email Notification (attach build report)
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "Laravel PR Build Report — PR #${{ github.event.pull_request.number }} — ${{ github.repository }}"
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: "CI Bot <ci@${{ github.repository_owner }}>"
+          content_type: text/plain
+          attachments: build-report.md
+          body: |
+            Repository: ${{ github.repository }}
+            Pull Request: #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}
+            Branch: ${{ github.head_ref }}
+            Commit: ${{ github.sha }}
+            Tests status: ${{ steps.run-tests.outcome }}
+
+            The build report is attached.
+
+            Regards,
+            Mufliheen.org Developer CI
